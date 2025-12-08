@@ -5,7 +5,7 @@
 // API 基础配置
 export const API_CONFIG = {
     // API 基础 URL
-    baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
+    baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:7107',
 
     // 请求超时时间（毫秒）
     timeout: 30000,
@@ -55,6 +55,14 @@ export const API_ENDPOINTS = {
     log: {
         history: '/api/log/history',
         search: '/api/log/search'
+    },
+    consumerOrder: {
+        list: '/api/DCSEmu/GetConsumerOrders',
+        createOrder: '/api/DCSEmu/CreateOrder',
+    },
+    device: {
+        processDeviceList: '/api/DCSEmu/GetProcessDevices',
+        bufferDeviceList: '/api/DCSEmu/GetBufferDevices',
     }
 }
 

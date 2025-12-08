@@ -8,4 +8,6 @@ export * from './alarm'
 export * from './carrier'
 export * from './vehicle'
 export * from './log'
+export * from './consumerOrder'
+export * from './device'
 

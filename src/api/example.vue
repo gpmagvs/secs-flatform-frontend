@@ -32,6 +32,14 @@
                     <h4>4. 错误处理</h4>
                     <el-button @click="handleErrorRequest">测试错误处理</el-button>
                 </el-card>
+
+                <el-card shadow="hover">
+                    <h4>5. DCS 訂單</h4>
+                    <el-button @click="handleGetConsumerOrderList">获取DCS訂單列表</el-button>
+                    <pre v-if="consumerOrderList">{{ JSON.stringify(consumerOrderList, null, 2) }}</pre>
+                    <el-button @click="handleCreateConsumerOrder">创建DCS訂單</el-button>
+                    <pre v-if="createdConsumerOrder">{{ JSON.stringify(createdConsumerOrder, null, 2) }}</pre>
+                </el-card>
             </el-space>
         </el-card>
     </div>
@@ -40,13 +48,14 @@
 <script setup>
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getAlarmList, getVehicleState, createAlarm } from '@/api/services'
+import { getAlarmList, getVehicleState, createAlarm, getConsumerOrderList, createConsumerOrder } from '@/api/services'
 import { get } from '@/api'
 
 const alarmList = ref(null)
 const vehicleState = ref(null)
 const createdAlarm = ref(null)
-
+const consumerOrderList = ref(null)
+const createdConsumerOrder = ref(null)
 // 示例 1: 基本 GET 请求
 async function handleGetAlarmList() {
     try {
@@ -97,18 +106,27 @@ async function handleErrorRequest() {
         // 错误消息已经通过拦截器自动显示了
     }
 }
+
+// 示例 5: 获取DCS訂單列表
+async function handleGetConsumerOrderList() {
+    try {
+        consumerOrderList.value = await getConsumerOrderList()
+        ElMessage.success('获取DCS訂單列表成功')
+    } catch (error) {
+        console.error('获取DCS訂單列表失败:', error)
+    }
+}
+
+// 示例 6: 创建DCS訂單
+async function handleCreateConsumerOrder() {
+    try {
+        createdConsumerOrder.value = await createConsumerOrder({
+            OrderID: '测试訂單',
+            TotalProductNumber: 10,
+        })
+        ElMessage.success('创建DCS訂單成功')
+    } catch (error) {
+        console.error('创建DCS訂單失败:', error)
+    }
+}
 </script>
-
-<style scoped>
-.api-example {
-    padding: 20px;
-}
-
-pre {
-    background: #f5f5f5;
-    padding: 10px;
-    border-radius: 4px;
-    overflow-x: auto;
-    margin-top: 10px;
-}
-</style>
