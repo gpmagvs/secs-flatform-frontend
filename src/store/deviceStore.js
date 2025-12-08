@@ -1,5 +1,5 @@
 //
-import { getProcessDeviceList, getBufferDeviceList } from '@/api/services'
+import { getProcessDeviceList, getBufferDeviceList, createProcessDevice, createBufferDevice } from '@/api/services'
 import { defineStore } from 'pinia'
 
 export const useDeviceStore = defineStore('device', {
@@ -34,6 +34,28 @@ export const useDeviceStore = defineStore('device', {
                 this.bufferDevices = []
             } finally {
                 this.loading = false
+            }
+        },
+        async createProcessDevice(deviceData) {
+            try {
+                const data = await createProcessDevice(deviceData)
+                // 创建成功后刷新列表
+                await this.fetchProcessDevices()
+                return data
+            } catch (err) {
+                this.error = err
+                throw err
+            }
+        },
+        async createBufferDevice(deviceData) {
+            try {
+                const data = await createBufferDevice(deviceData)
+                // 创建成功后刷新列表
+                await this.fetchBufferDevices()
+                return data
+            } catch (err) {
+                this.error = err
+                throw err
             }
         }
     }

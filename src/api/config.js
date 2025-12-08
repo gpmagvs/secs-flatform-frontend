@@ -63,6 +63,8 @@ export const API_ENDPOINTS = {
     device: {
         processDeviceList: '/api/DCSEmu/GetProcessDevices',
         bufferDeviceList: '/api/DCSEmu/GetBufferDevices',
+        createProcessDevice: '/api/DCSEmu/CreateProcessDevice',
+        createBufferDevice: '/api/DCSEmu/CreateBufferDevice',
     }
 }
 
