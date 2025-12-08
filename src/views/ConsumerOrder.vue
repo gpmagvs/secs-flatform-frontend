@@ -61,6 +61,13 @@
                         </div>
                     </template>
                 </el-table-column>
+                <el-table-column label="子流程數量" width="120">
+                    <template #default="{ row }">
+                        <el-tag type="info">
+                            {{ getSubProcessList(row).length }} 個
+                        </el-tag>
+                    </template>
+                </el-table-column>
                 <el-table-column label="操作" width="150" fixed="right">
                     <template #default="{ row }">
                         <el-button link type="primary" size="small" @click="handleView(row)">查看</el-button>
@@ -71,7 +78,7 @@
         </el-card>
 
         <!-- 創建訂單對話框 -->
-        <el-dialog v-model="dialogVisible" title="新增客戶訂單" width="600px" @close="resetForm">
+        <el-dialog v-model="dialogVisible" title="新增客戶訂單" width="800px" @close="resetForm">
             <el-form ref="orderFormRef" :model="orderForm" :rules="formRules" label-width="140px">
                 <el-form-item label="訂單ID" prop="orderID">
                     <el-input v-model="orderForm.orderID" placeholder="請輸入訂單ID" />
@@ -99,6 +106,57 @@
                     prop="productBatchSetup.numberOfProductsPerBatch">
                     <el-input-number v-model="orderForm.productBatchSetup.numberOfProductsPerBatch" :min="1" :max="100"
                         placeholder="請輸入每批產品數量" style="width: 100%" />
+                </el-form-item>
+
+                <el-divider>子流程列表</el-divider>
+
+                <el-form-item label="子流程設置">
+                    <div class="sub-process-list">
+                        <div v-for="(subProcess, index) in orderForm.subProcessList" :key="index"
+                            class="sub-process-item">
+                            <el-card shadow="hover" class="sub-process-card">
+                                <template #header>
+                                    <div class="sub-process-header">
+                                        <span>子流程 {{ index + 1 }}</span>
+                                        <el-button type="danger" size="small" text @click="removeSubProcess(index)">
+                                            <el-icon>
+                                                <Delete />
+                                            </el-icon>
+                                            刪除
+                                        </el-button>
+                                    </div>
+                                </template>
+                                <el-form-item :label="`子流程類型`" :prop="`subProcessList.${index}.subProcessType`" :rules="{
+                                    required: true,
+                                    message: '請選擇子流程類型',
+                                    trigger: 'change'
+                                }">
+                                    <el-select v-model="subProcess.subProcessType" placeholder="請選擇子流程類型"
+                                        style="width: 100%">
+                                        <el-option v-for="type in subProcessTypes" :key="type.value" :label="type.label"
+                                            :value="type.value" />
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="製程時間(小時)" :prop="`subProcessList.${index}.processTimeInHours`"
+                                    :rules="{
+                                        required: true,
+                                        message: '請輸入製程時間',
+                                        trigger: 'blur',
+                                        type: 'number',
+                                        min: 0
+                                    }">
+                                    <el-input-number v-model="subProcess.processTimeInHours" :min="0" :precision="2"
+                                        :step="0.1" placeholder="請輸入製程時間(小時)" style="width: 100%" />
+                                </el-form-item>
+                            </el-card>
+                        </div>
+                        <el-button type="primary" plain @click="addSubProcess" style="width: 100%; margin-top: 10px">
+                            <el-icon>
+                                <Plus />
+                            </el-icon>
+                            新增子流程
+                        </el-button>
+                    </div>
                 </el-form-item>
             </el-form>
             <template #footer>
@@ -150,6 +208,15 @@
                         selectedOrder.ProductBatchSetup?.NumberOfProductsPerBatch
                     }}
                 </el-descriptions-item>
+                <el-descriptions-item label="子流程列表">
+                    <div v-if="getSubProcessList(selectedOrder).length > 0" class="sub-process-display">
+                        <el-tag v-for="(subProcess, index) in getSubProcessList(selectedOrder)" :key="index"
+                            :type="getSubProcessTagType(subProcess.type)" style="margin-right: 8px; margin-bottom: 4px">
+                            {{ getSubProcessTypeLabel(subProcess.type) }} ({{ subProcess.time }}小時)
+                        </el-tag>
+                    </div>
+                    <span v-else class="text-muted">無</span>
+                </el-descriptions-item>
             </el-descriptions>
         </el-dialog>
     </div>
@@ -160,7 +227,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useConsumerOrderStore } from '@/store/consumerOrder'
 import { createConsumerOrder } from '@/api/services/consumerOrder'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Delete } from '@element-plus/icons-vue'
 
 const orderStore = useConsumerOrderStore()
 const loading = ref(false)
@@ -179,6 +246,38 @@ const processTypes = [
     { label: '壓模與烘烤製程', value: 2 }
 ]
 
+// 子流程類型選項 (對應 C# 枚舉值: 0=MOLDING, 1=BAKING, 2=ANNEALING, 3=OTP)
+const subProcessTypes = [
+    { label: '壓膜', value: 0 },
+    { label: '烘烤', value: 1 },
+    { label: '退火', value: 2 },
+    { label: 'OTP', value: 3 }
+]
+
+// 獲取子流程類型標籤
+const getSubProcessTypeLabel = (type) => {
+    if (typeof type === 'number') {
+        const typeMap = {
+            0: '壓膜',
+            1: '烘烤',
+            2: '退火',
+            3: 'OTP'
+        }
+        return typeMap[type] || `未知類型(${type})`
+    }
+    const typeMap = {
+        MOLDING: '壓膜',
+        BAKING: '烘烤',
+        ANNEALING: '退火',
+        OTP: 'OTP',
+        0: '壓膜',
+        1: '烘烤',
+        2: '退火',
+        3: 'OTP'
+    }
+    return typeMap[type] || type
+}
+
 // 訂單表單
 const orderForm = ref({
     orderID: '',
@@ -187,7 +286,8 @@ const orderForm = ref({
     productBatchSetup: {
         isUseBatch: false,
         numberOfProductsPerBatch: 2
-    }
+    },
+    subProcessList: [] // 子流程列表
 })
 
 // 表單驗證規則
@@ -260,6 +360,86 @@ const openCreateDialog = () => {
     dialogVisible.value = true
 }
 
+// 添加子流程
+const addSubProcess = () => {
+    orderForm.value.subProcessList.push({
+        subProcessType: null,
+        processTimeInHours: 0
+    })
+}
+
+// 刪除子流程
+const removeSubProcess = (index) => {
+    orderForm.value.subProcessList.splice(index, 1)
+}
+
+
+// 獲取子流程標籤顏色
+const getSubProcessTagType = (type) => {
+    const tagMap = {
+        0: 'primary',
+        1: 'warning',
+        2: 'success',
+        3: 'info'
+    }
+    return tagMap[type] || 'info'
+}
+
+// 從訂單對象中提取子流程列表（用於顯示）
+const getSubProcessList = (order) => {
+    const subProcessList = []
+    const subProcessArray = order.subProcessList || order.SubProcessList || []
+
+    // 如果是數組，直接遍歷（新格式）
+    if (Array.isArray(subProcessArray)) {
+        subProcessArray.forEach((subProcess) => {
+            const processType =
+                subProcess.subProcessType !== undefined
+                    ? subProcess.subProcessType
+                    : subProcess.SubProcessType !== undefined
+                        ? subProcess.SubProcessType
+                        : 0
+            const processTime =
+                subProcess.processTimeInHours !== undefined
+                    ? subProcess.processTimeInHours
+                    : subProcess.ProcessTimeInHours !== undefined
+                        ? subProcess.ProcessTimeInHours
+                        : 0
+
+            subProcessList.push({
+                type: processType,
+                time: processTime
+            })
+        })
+    }
+    // 如果是對象（向後兼容舊格式），遍歷所有鍵值對
+    else if (typeof subProcessArray === 'object' && subProcessArray !== null) {
+        Object.keys(subProcessArray).forEach((key) => {
+            const subProcess = subProcessArray[key]
+            const processType =
+                subProcess.subProcessType !== undefined
+                    ? subProcess.subProcessType
+                    : subProcess.SubProcessType !== undefined
+                        ? subProcess.SubProcessType
+                        : parseInt(key)
+            const processTime =
+                subProcess.processTimeInHours !== undefined
+                    ? subProcess.processTimeInHours
+                    : subProcess.ProcessTimeInHours !== undefined
+                        ? subProcess.ProcessTimeInHours
+                        : 0
+
+            subProcessList.push({
+                type: processType,
+                time: processTime
+            })
+        })
+    }
+
+    // 保持順序（數組已經有序，不需要排序）
+    return subProcessList
+}
+
 // 重置表單
 const resetForm = () => {
     orderForm.value = {
@@ -269,7 +449,8 @@ const resetForm = () => {
         productBatchSetup: {
             isUseBatch: false,
             numberOfProductsPerBatch: 2
-        }
+        },
+        subProcessList: []
     }
     orderFormRef.value?.clearValidate()
 }
@@ -283,6 +464,27 @@ const handleSubmit = async () => {
 
         submitting.value = true
         try {
+            // 轉換子流程列表為數組格式
+            // 由於 SubProcessBase 是抽象類，System.Text.Json 無法直接反序列化
+            // 需要後端配置多態序列化支持，或者使用自定義 JSON 轉換器
+            // 後端使用 List<SubProcessBase>，支持相同類型的多個子流程並保持順序
+            const subProcessTypeMap = {
+                0: 'MoldingProcessState',
+                1: 'BakingProcessState',
+                2: 'AnnelingProcessState',
+                3: 'OTPProcessState'
+            }
+
+            // 轉換為數組格式，保持順序，允許重複類型
+            const subProcessArray = orderForm.value.subProcessList
+                .filter((subProcess) => subProcess.subProcessType !== null && subProcess.subProcessType !== undefined)
+                .map((subProcess) => ({
+                    $type: subProcessTypeMap[subProcess.subProcessType], // 類型標識
+                    ProcessTimeInHours: subProcess.processTimeInHours || 0,
+                    ProcessDevicesList: [],
+                    BufferDevicesList: []
+                }))
+
             // 轉換表單數據為 API 格式
             const orderData = {
                 OrderID: orderForm.value.orderID,
@@ -293,7 +495,8 @@ const handleSubmit = async () => {
                     NumberOfProductsPerBatch: orderForm.value.productBatchSetup.isUseBatch
                         ? orderForm.value.productBatchSetup.numberOfProductsPerBatch
                         : 0
-                }
+                },
+                SubProcessList: subProcessArray
             }
 
             await createConsumerOrder(orderData)
@@ -381,5 +584,34 @@ onMounted(async () => {
     margin-left: 8px;
     font-size: 12px;
     color: #909399;
+}
+
+.sub-process-list {
+    width: 100%;
+}
+
+.sub-process-item {
+    margin-bottom: 12px;
+}
+
+.sub-process-card {
+    margin-bottom: 0;
+}
+
+.sub-process-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sub-process-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.text-muted {
+    color: #909399;
+    font-style: italic;
 }
 </style>
