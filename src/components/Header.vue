@@ -71,6 +71,11 @@ const menuItems = [
         icon: Document
     },
     {
+        path: '/consumer-order',
+        title: '客戶訂單',
+        icon: Document
+    },
+    {
         path: '/alarm',
         title: '警報中心',
         icon: Bell

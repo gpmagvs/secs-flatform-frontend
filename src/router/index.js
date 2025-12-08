@@ -27,6 +27,14 @@ const routes = [
     }
   },
   {
+    path: '/consumer-order',
+    name: 'ConsumerOrder',
+    component: () => import('@/views/ConsumerOrder.vue'),
+    meta: {
+      title: '客戶訂單管理'
+    }
+  },
+  {
     path: '/alarm',
     name: 'Alarm',
     component: () => import('@/views/Alarm.vue'),
