@@ -68,20 +68,24 @@
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="150" fixed="right">
+                <el-table-column label="操作" width="200" fixed="right">
                     <template #default="{ row }">
                         <el-button link type="primary" size="small" @click="handleView(row)">查看</el-button>
+                        <el-button link type="primary" size="small" @click="handleEdit(row)">編輯</el-button>
                         <el-button link type="danger" size="small" @click="handleDelete(row)">刪除</el-button>
                     </template>
                 </el-table-column>
             </el-table>
         </el-card>
 
-        <!-- 創建訂單對話框 -->
-        <el-dialog v-model="dialogVisible" title="新增客戶訂單" width="800px" @close="resetForm">
+        <!-- 創建/編輯訂單對話框 -->
+        <el-dialog v-model="dialogVisible" :title="dialogTitle" width="800px" @close="resetForm">
             <el-form ref="orderFormRef" :model="orderForm" :rules="formRules" label-width="140px">
                 <el-form-item label="訂單ID" prop="orderID">
-                    <el-input v-model="orderForm.orderID" placeholder="請輸入訂單ID" />
+                    <el-input v-model="orderForm.orderID" placeholder="請輸入訂單ID" :disabled="isEditMode" />
+                    <div v-if="isEditMode" class="form-hint">
+                        <el-text type="info" size="small">訂單ID不可修改</el-text>
+                    </div>
                 </el-form-item>
 
                 <el-form-item label="總產品數量" prop="totalProductNumber">
@@ -225,7 +229,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useConsumerOrderStore } from '@/store/consumerOrder'
-import { createConsumerOrder } from '@/api/services/consumerOrder'
+import { createConsumerOrder, updateConsumerOrder } from '@/api/services/consumerOrder'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Delete } from '@element-plus/icons-vue'
 
@@ -236,8 +240,14 @@ const viewDialogVisible = ref(false)
 const submitting = ref(false)
 const orderFormRef = ref(null)
 const selectedOrder = ref(null)
+const isEditMode = ref(false)
+const editingOrderID = ref(null)
 
 const orders = computed(() => orderStore.orders)
+
+const dialogTitle = computed(() => {
+    return isEditMode.value ? '編輯客戶訂單' : '新增客戶訂單'
+})
 
 // 製程類型選項 (對應 C# 枚舉值: 0=AOI_AOS_INSPECTION, 1=YELLOW_LIGHT_AREA, 2=MOLDING_AND_BAKING)
 const processTypes = [
@@ -253,6 +263,35 @@ const subProcessTypes = [
     { label: '退火', value: 2 },
     { label: 'OTP', value: 3 }
 ]
+
+// 將主要製程類型轉換為數字（支持字符串和數字）
+const convertMainProcessTypeToNumber = (type) => {
+    if (typeof type === 'number') return type
+    if (typeof type === 'string') {
+        const typeMap = {
+            'AOI_AOS_INSPECTION': 0,
+            'YELLOW_LIGHT_AREA': 1,
+            'MOLDING_AND_BAKING': 2
+        }
+        return typeMap[type] !== undefined ? typeMap[type] : 2
+    }
+    return 2 // 默認值
+}
+
+// 將子流程類型轉換為數字（支持字符串和數字）
+const convertSubProcessTypeToNumber = (type) => {
+    if (typeof type === 'number') return type
+    if (typeof type === 'string') {
+        const typeMap = {
+            'MOLDING': 0,
+            'BAKING': 1,
+            'ANNEALING': 2,
+            'OTP': 3
+        }
+        return typeMap[type] !== undefined ? typeMap[type] : null
+    }
+    return null
+}
 
 // 獲取子流程類型標籤
 const getSubProcessTypeLabel = (type) => {
@@ -357,7 +396,63 @@ const getProcessTypeTag = (type) => {
 
 // 打開創建對話框
 const openCreateDialog = () => {
+    isEditMode.value = false
+    editingOrderID.value = null
+    resetForm()
     dialogVisible.value = true
+}
+
+// 打開編輯對話框
+const handleEdit = (row) => {
+    isEditMode.value = true
+    editingOrderID.value = row.orderID || row.OrderID
+
+    // 加載訂單數據到表單
+    const order = row
+    const mainProcessTypeValue = order.mainProcessType !== undefined
+        ? order.mainProcessType
+        : order.MainProcessType !== undefined
+            ? order.MainProcessType
+            : 2
+
+    orderForm.value = {
+        orderID: order.orderID || order.OrderID || '',
+        totalProductNumber: order.totalProductNumber || order.TotalProductNumber || 1,
+        mainProcessType: convertMainProcessTypeToNumber(mainProcessTypeValue),
+        productBatchSetup: {
+            isUseBatch: order.productBatchSetup?.isUseBatch || order.ProductBatchSetup?.IsUseBatch || false,
+            numberOfProductsPerBatch: order.productBatchSetup?.numberOfProductsPerBatch || order.ProductBatchSetup?.NumberOfProductsPerBatch || 2
+        },
+        subProcessList: loadSubProcessListToForm(order)
+    }
+
+    dialogVisible.value = true
+}
+
+// 將訂單的子流程列表加載到表單格式
+const loadSubProcessListToForm = (order) => {
+    const subProcessArray = order.subProcessList || order.SubProcessList || []
+
+    if (Array.isArray(subProcessArray)) {
+        return subProcessArray.map((subProcess) => {
+            const subProcessTypeValue = subProcess.subProcessType !== undefined
+                ? subProcess.subProcessType
+                : subProcess.SubProcessType !== undefined
+                    ? subProcess.SubProcessType
+                    : null
+
+            return {
+                subProcessType: convertSubProcessTypeToNumber(subProcessTypeValue),
+                processTimeInHours: subProcess.processTimeInHours !== undefined
+                    ? subProcess.processTimeInHours
+                    : subProcess.ProcessTimeInHours !== undefined
+                        ? subProcess.ProcessTimeInHours
+                        : 0
+            }
+        })
+    }
+
+    return []
 }
 
 // 添加子流程
@@ -452,6 +547,8 @@ const resetForm = () => {
         },
         subProcessList: []
     }
+    isEditMode.value = false
+    editingOrderID.value = null
     orderFormRef.value?.clearValidate()
 }
 
@@ -499,8 +596,16 @@ const handleSubmit = async () => {
                 SubProcessList: subProcessArray
             }
 
-            await createConsumerOrder(orderData)
-            ElMessage.success('訂單創建成功')
+            if (isEditMode.value && editingOrderID.value) {
+                // 更新訂單
+                await updateConsumerOrder(editingOrderID.value, orderData)
+                ElMessage.success('訂單更新成功')
+            } else {
+                // 創建訂單
+                await createConsumerOrder(orderData)
+                ElMessage.success('訂單創建成功')
+            }
+
             dialogVisible.value = false
             resetForm()
             // 刷新訂單列表
@@ -613,5 +718,9 @@ onMounted(async () => {
 .text-muted {
     color: #909399;
     font-style: italic;
+}
+
+.form-hint {
+    margin-top: 4px;
 }
 </style>
