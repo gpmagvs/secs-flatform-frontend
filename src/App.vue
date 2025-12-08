@@ -2,8 +2,11 @@
 import { onMounted } from 'vue'
 import { useConsumerOrderStore } from '@/store/consumerOrder'
 import { useDeviceStore } from '@/store/deviceStore'
+import Header from '@/components/Header.vue'
+
 const consumerOrderStore = useConsumerOrderStore()
 const deviceStore = useDeviceStore()
+
 onMounted(() => {
   consumerOrderStore.fetchOrders()
   deviceStore.fetchProcessDevices()
@@ -13,23 +16,36 @@ onMounted(() => {
 
 <template>
   <div id="app">
-    <router-view />
+    <el-container>
+      <Header />
+      <el-main class="app-main">
+        <router-view />
+      </el-main>
+    </el-container>
   </div>
 </template>
 
 <style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+#app {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+.el-container {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
+.app-main {
+  flex: 1;
+  padding: 20px;
+  background-color: #f5f7fa;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 </style>

@@ -1,12 +1,16 @@
 <template>
-  <div class="container mt-4">
-    <h1> SECS Platform</h1>
-    <el-card class="mt-4">
-      <template #header>
-        <span>Info</span>
-      </template>
-      <p>Element Plus、Bootstrap、Vue Router 和 Pinia 已成功配置！</p>
-    </el-card>
+  <div class="home-container">
+    <h1 class="page-title">SECS Platform</h1>
+    <el-row :gutter="20" class="content-row">
+      <el-col :span="24">
+        <el-card class="info-card">
+          <template #header>
+            <span>系统信息</span>
+          </template>
+          <p>Element Plus、Bootstrap、Vue Router 和 Pinia 已成功配置！</p>
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
@@ -15,8 +19,28 @@
 </script>
 
 <style scoped>
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
+.home-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0 0 20px 0;
+}
+
+.content-row {
+  width: 100%;
+  flex: 1;
+}
+
+.info-card {
+  width: 100%;
+  height: 100%;
 }
 </style>

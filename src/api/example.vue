@@ -130,3 +130,39 @@ async function handleCreateConsumerOrder() {
     }
 }
 </script>
+
+<style scoped>
+.api-example {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.api-example .el-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.api-example .el-card :deep(.el-card__body) {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.api-example .el-space {
+    width: 100%;
+}
+
+.api-example pre {
+    background: #f5f5f5;
+    padding: 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin-top: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+</style>
