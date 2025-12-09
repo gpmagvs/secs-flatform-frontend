@@ -61,18 +61,18 @@ const menuItems = [
         icon: House
     },
     {
+        path: '/consumer-order',
+        title: '客戶訂單',
+        icon: Document
+    },
+    {
         path: '/device',
         title: '設備管理',
         icon: Setting
     },
     {
         path: '/order',
-        title: '訂單管理',
-        icon: Document
-    },
-    {
-        path: '/consumer-order',
-        title: '客戶訂單',
+        title: '任務管理',
         icon: Document
     },
     {

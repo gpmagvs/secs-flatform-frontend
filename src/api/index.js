@@ -7,13 +7,13 @@
 export { API_CONFIG, API_ENDPOINTS } from './config'
 
 // 导出请求方法
-export { 
-  request, 
-  get, 
-  post, 
-  put, 
-  patch, 
-  del,
+export {
+  request,
+  get,
+  post,
+  put,
+  patch,
+  deleteRequest,
   addRequestInterceptor,
   addResponseInterceptor
 } from './request'

@@ -2,7 +2,7 @@
  * 告警相关 API
  */
 
-import { get, post, put, del } from '../request'
+import { get, post, put, deleteRequest } from '../request'
 import { API_ENDPOINTS } from '../config'
 
 /**
@@ -51,6 +51,6 @@ export function updateAlarm(id, data) {
  * @returns {Promise}
  */
 export function deleteAlarm(id) {
-    return del(API_ENDPOINTS.alarm.delete(id))
+    return deleteRequest(API_ENDPOINTS.alarm.delete(id))
 }
 

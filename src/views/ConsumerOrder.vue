@@ -79,7 +79,8 @@
         </el-card>
 
         <!-- 創建/編輯訂單對話框 -->
-        <el-dialog v-model="dialogVisible" :title="dialogTitle" width="800px" @close="resetForm">
+        <el-dialog v-model="dialogVisible" :title="dialogTitle" width="800px" @close="resetForm"
+            :close-on-click-modal="false" draggable>
             <el-form ref="orderFormRef" :model="orderForm" :rules="formRules" label-width="140px">
                 <el-form-item label="訂單ID" prop="orderID">
                     <el-input v-model="orderForm.orderID" placeholder="請輸入訂單ID" :disabled="isEditMode" />
@@ -89,7 +90,7 @@
                 </el-form-item>
 
                 <el-form-item label="總產品數量" prop="totalProductNumber">
-                    <el-input-number v-model="orderForm.totalProductNumber" :min="1" :max="1000" placeholder="請輸入總產品數量"
+                    <el-input-number v-model="orderForm.totalProductNumber" :min="1" placeholder="請輸入總產品數量"
                         style="width: 100%" />
                 </el-form-item>
 
@@ -151,6 +152,23 @@
                                     }">
                                     <el-input-number v-model="subProcess.processTimeInHours" :min="0" :precision="2"
                                         :step="0.1" placeholder="請輸入製程時間(小時)" style="width: 100%" />
+                                </el-form-item>
+                                <el-form-item label="製程設備">
+                                    <el-select multiple v-model="subProcess.processDevicesList" placeholder="請選擇製程設備"
+                                        style="width: 100%">
+                                        <el-option-group v-for="group in devices" :key="group.label"
+                                            :label="group.label">
+                                            <el-option v-for="device in group.value" :key="device.deviceID"
+                                                :label="device.deviceName" :value="device.deviceID" />
+                                        </el-option-group>
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="暫存區">
+                                    <el-select multiple v-model="subProcess.bufferDevicesList" placeholder="請選擇暫存區"
+                                        style="width: 100%">
+                                        <el-option v-for="device in devices[1].value" :key="device.deviceID"
+                                            :label="device.deviceName" :value="device.deviceID" />
+                                    </el-select>
                                 </el-form-item>
                             </el-card>
                         </div>
@@ -229,11 +247,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useConsumerOrderStore } from '@/store/consumerOrder'
-import { createConsumerOrder, updateConsumerOrder } from '@/api/services/consumerOrder'
+import { useDeviceStore } from '@/store/deviceStore'
+import { createConsumerOrder, updateConsumerOrder, deleteConsumerOrder } from '@/api/services/consumerOrder'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Delete } from '@element-plus/icons-vue'
 
 const orderStore = useConsumerOrderStore()
+const deviceStore = useDeviceStore()
+
 const loading = ref(false)
 const dialogVisible = ref(false)
 const viewDialogVisible = ref(false)
@@ -248,6 +269,8 @@ const orders = computed(() => orderStore.orders)
 const dialogTitle = computed(() => {
     return isEditMode.value ? '編輯客戶訂單' : '新增客戶訂單'
 })
+
+const devices = computed(() => deviceStore.getDevicesWithGroup)
 
 // 製程類型選項 (對應 C# 枚舉值: 0=AOI_AOS_INSPECTION, 1=YELLOW_LIGHT_AREA, 2=MOLDING_AND_BAKING)
 const processTypes = [
@@ -447,7 +470,9 @@ const loadSubProcessListToForm = (order) => {
                     ? subProcess.processTimeInHours
                     : subProcess.ProcessTimeInHours !== undefined
                         ? subProcess.ProcessTimeInHours
-                        : 0
+                        : 0,
+                processDevicesList: subProcess.processDevicesList || subProcess.ProcessDevicesList || [],
+                bufferDevicesList: subProcess.bufferDevicesList || subProcess.BufferDevicesList || []
             }
         })
     }
@@ -459,7 +484,9 @@ const loadSubProcessListToForm = (order) => {
 const addSubProcess = () => {
     orderForm.value.subProcessList.push({
         subProcessType: null,
-        processTimeInHours: 0
+        processTimeInHours: 0,
+        processDevicesList: [],
+        bufferDevicesList: []
     })
 }
 
@@ -576,10 +603,10 @@ const handleSubmit = async () => {
             const subProcessArray = orderForm.value.subProcessList
                 .filter((subProcess) => subProcess.subProcessType !== null && subProcess.subProcessType !== undefined)
                 .map((subProcess) => ({
-                    $type: subProcessTypeMap[subProcess.subProcessType], // 類型標識
+                    SubProcessType: subProcess.subProcessType, // 類型標識
                     ProcessTimeInHours: subProcess.processTimeInHours || 0,
-                    ProcessDevicesList: [],
-                    BufferDevicesList: []
+                    ProcessDevicesList: subProcess.processDevicesList || [],
+                    BufferDevicesList: subProcess.bufferDevicesList || []
                 }))
 
             // 轉換表單數據為 API 格式
@@ -602,6 +629,12 @@ const handleSubmit = async () => {
                 ElMessage.success('訂單更新成功')
             } else {
                 // 創建訂單
+                //檢查訂單是否存在
+                const order = orderStore.orders.find(order => order.orderID === orderData.OrderID);
+                if (order) {
+                    ElMessage.error(`訂單 ID(${orderData.OrderID}) 已存在, 請確認是否為同一訂單`)
+                    return
+                }
                 await createConsumerOrder(orderData)
                 ElMessage.success('訂單創建成功')
             }
@@ -627,18 +660,20 @@ const handleView = (row) => {
 // 刪除訂單
 const handleDelete = async (row) => {
     try {
-        await ElMessageBox.confirm('確定要刪除此訂單嗎？', '提示', {
+        const result = await ElMessageBox.confirm('確定要刪除此訂單嗎？', '提示', {
             confirmButtonText: '確定',
             cancelButtonText: '取消',
             type: 'warning'
         })
-        // TODO: 調用刪除 API
-        ElMessage.success('訂單已刪除')
-        await orderStore.fetchOrders()
-    } catch (error) {
-        if (error !== 'cancel') {
-            ElMessage.error('刪除訂單失敗')
+
+        if (result === 'confirm') {
+            // TODO: 調用刪除 API
+            await deleteConsumerOrder(row.orderID)
+            ElMessage.success('訂單已刪除')
+            await orderStore.fetchOrders()
         }
+    } catch (error) {
+        ElMessage.error('刪除訂單失敗')
     }
 }
 

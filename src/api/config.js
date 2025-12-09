@@ -60,6 +60,7 @@ export const API_ENDPOINTS = {
         list: '/api/DCSEmu/GetConsumerOrders',
         createOrder: '/api/DCSEmu/CreateOrder',
         updateOrder: (orderID) => `/api/DCSEmu/UpdateOrder/${orderID}`,
+        deleteOrder: (orderID) => `/api/DCSEmu/DeleteOrder/${orderID}`,
     },
     device: {
         processDeviceList: '/api/DCSEmu/GetProcessDevices',

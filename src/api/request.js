@@ -266,7 +266,7 @@ export function patch(url, data = {}, config = {}) {
 /**
  * DELETE 请求
  */
-export function del(url, config = {}) {
+export function deleteRequest(url, config = {}) {
     return request({
         url,
         method: 'DELETE',

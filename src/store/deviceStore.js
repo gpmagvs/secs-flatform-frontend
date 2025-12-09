@@ -9,6 +9,17 @@ export const useDeviceStore = defineStore('device', {
         loading: false,
         error: null
     }),
+    getters: {
+        getProcessDevices: (state) => state.processDevices,
+        getBufferDevices: (state) => state.bufferDevices,
+        getDevicesWithGroup: (state) => {
+            var devices = [
+                { label: '製程設備', value: state.processDevices },
+                { label: '儲架設備', value: state.bufferDevices }
+            ]
+            return devices
+        }
+    },
     actions: {
         async fetchProcessDevices(params = {}) {
             this.loading = true
