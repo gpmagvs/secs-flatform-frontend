@@ -190,7 +190,7 @@
         </el-dialog>
 
         <!-- 查看訂單詳情對話框 -->
-        <el-dialog v-model="viewDialogVisible" title="訂單詳情" width="600px">
+        <el-dialog v-model="viewDialogVisible" title="訂單詳情" width="900px">
             <el-descriptions :column="1" border v-if="selectedOrder">
                 <el-descriptions-item label="訂單ID">
                     {{ selectedOrder.orderID || selectedOrder.OrderID }}
@@ -232,10 +232,15 @@
                 </el-descriptions-item>
                 <el-descriptions-item label="子流程列表">
                     <div v-if="getSubProcessList(selectedOrder).length > 0" class="sub-process-display">
-                        <el-tag v-for="(subProcess, index) in getSubProcessList(selectedOrder)" :key="index"
-                            :type="getSubProcessTagType(subProcess.type)" style="margin-right: 8px; margin-bottom: 4px">
-                            {{ getSubProcessTypeLabel(subProcess.type) }} ({{ subProcess.time }}小時)
-                        </el-tag>
+                        <div v-for="(subProcess, index) in getSubProcessList(selectedOrder)" :key="index">
+                            <el-tag :type="getSubProcessTagType(subProcess.type)"
+                                style="margin-right: 8px; margin-bottom: 4px">
+                                {{ getSubProcessTypeLabel(subProcess.type) }} ({{ subProcess.time }}小時)
+                            </el-tag>
+                            <span style="font-size: 14px;" v-if="index < getSubProcessList(selectedOrder).length - 1">
+                                &rarr;
+                            </span>
+                        </div>
                     </div>
                     <span v-else class="text-muted">無</span>
                 </el-descriptions-item>
