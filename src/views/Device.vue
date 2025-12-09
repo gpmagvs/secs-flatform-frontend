@@ -18,7 +18,7 @@
             </el-button>
           </div>
           <el-table :data="processDevices" style="width: 100%" v-loading="loading">
-            <el-table-column prop="deviceID" label="設備ID" width="120" />
+            <el-table-column prop="deviceID" label="設備ID" width="190" />
             <el-table-column prop="deviceName" label="設備名稱" />
             <!-- <el-table-column prop="status" label="狀態" width="100">
               <template #default="{ row }">
@@ -41,7 +41,7 @@
             </el-button>
           </div>
           <el-table :data="bufferDevices" style="width: 100%" v-loading="loading">
-            <el-table-column prop="deviceID" label="設備ID" width="120" />
+            <el-table-column prop="deviceID" label="設備ID" width="190" />
             <el-table-column prop="deviceName" label="設備名稱" />
             <!-- <el-table-column prop="status" label="狀態" width="100">
               <template #default="{ row }">
